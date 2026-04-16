@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <ellipse cx="16" cy="18" rx="13" ry="12" fill="#e94560"/>
+  <ellipse cx="16" cy="18" rx="13" ry="12" fill="url(#tomato-gradient)"/>
+  <path d="M16 6 C14 2, 18 1, 16 6 C20 2, 22 4, 16 6 C18 8, 14 8, 16 6" fill="#4ecca3"/>
+  <ellipse cx="12" cy="14" rx="3" ry="4" fill="rgba(255,255,255,0.2)"/>
+  <defs>
+    <radialGradient id="tomato-gradient" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#c0392b"/>
+    </radialGradient>
+  </defs>
+</svg>
