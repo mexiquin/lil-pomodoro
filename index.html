@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #0f3460;
+            --text-primary: #eaeaea;
+            --text-secondary: #a0a0a0;
+            --accent-work: #e94560;
+            --accent-break: #4ecca3;
+            --accent-long: #7b68ee;
+            --accent-color: var(--accent-work);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+        }
+
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 300;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            margin-bottom: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .phase-indicator {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .phase {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+        .phase.active {
+            opacity: 1;
+            border-color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .phase:hover {
+            opacity: 0.8;
+        }
+
+        .timer-display {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 2rem;
+        }
+
+        .timer-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .timer-ring circle {
+            fill: none;
+            stroke-width: 6;
+            transform: rotate(-90deg);
+            transform-origin: center;
+        }
+
+        .timer-ring .background {
+            stroke: var(--bg-card);
+        }
+
+        .timer-ring .progress {
+            stroke: var(--accent-color);
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+        }
+
+        .time {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 200;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.05em;
+        }
+
+        .session-count {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+
+        button {
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.primary {
+            background: var(--accent-color);
+            min-width: 120px;
+        }
+
+        button.primary:hover {
+            filter: brightness(1.1);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .icon-btn {
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            position: relative;
+        }
+
+        .icon-btn::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.625rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .icon-btn:hover::after {
+            opacity: 1;
+        }
+
+        .secondary-btn {
+            font-size: 0.75rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .message {
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            min-height: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: 1.25rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .phase-indicator {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .phase {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.625rem;
+            }
+
+            .timer-display {
+                width: 240px;
+                height: 240px;
+            }
+
+            .time {
+                font-size: 3rem;
+            }
+
+            .session-count {
+                margin-bottom: 1.5rem;
+            }
+
+            .controls-row {
+                gap: 0.5rem;
+            }
+
+            button.primary {
+                padding: 0.75rem 1.25rem;
+                min-width: 100px;
+            }
+
+            .icon-btn {
+                width: 44px;
+                height: 44px;
+            }
+
+            .secondary-btn {
+                padding: 0.5rem 0.75rem;
+            }
+
+            .icon-btn::after {
+                font-size: 0.5rem;
+                padding: 0.2rem 0.4rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .timer-display {
+                width: 200px;
+                height: 200px;
+            }
+
+            .time {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pomodoro</h1>
+
+        <div class="phase-indicator">
+            <span class="phase active" data-phase="work">Focus</span>
+            <span class="phase" data-phase="shortBreak">Short Break</span>
+            <span class="phase" data-phase="longBreak">Long Break</span>
+        </div>
+
+        <div class="timer-display">
+            <svg class="timer-ring" viewBox="0 0 280 280">
+                <circle class="background" cx="140" cy="140" r="134"></circle>
+                <circle class="progress" cx="140" cy="140" r="134"
+                    stroke-dasharray="842" stroke-dashoffset="0"></circle>
+            </svg>
+            <div class="time">25:00</div>
+        </div>
+
+        <div class="session-count">Session 1 of 4</div>
+
+        <div class="controls">
+            <div class="controls-row">
+                <button id="startBtn" class="primary">Start</button>
+                <button id="pauseBtn" class="icon-btn" disabled data-tooltip="Pause" title="Pause">⏸</button>
+                <button id="skipBtn" class="icon-btn" data-tooltip="Skip" title="Skip">⏭</button>
+            </div>
+            <div class="controls-row">
+                <button id="restartBtn" class="secondary-btn">Restart</button>
+                <button id="newSessionBtn" class="secondary-btn">New Session</button>
+            </div>
+        </div>
+
+        <div class="message">Press start to begin your focus session</div>
+    </div>
+
+    <script>
+        const phases = {
+            work: { duration: 25 * 60, label: 'Focus', color: '#e94560' },
+            shortBreak: { duration: 5 * 60, label: 'Short Break', color: '#4ecca3' },
+            longBreak: { duration: 15 * 60, label: 'Long Break', color: '#7b68ee' }
+        };
+
+        const sessionsBeforeLongBreak = 4;
+        const circumference = 2 * Math.PI * 134;
+
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const skipBtn = document.getElementById('skipBtn');
+        const newSessionBtn = document.getElementById('newSessionBtn');
+        const timeDisplay = document.querySelector('.time');
+        const progressCircle = document.querySelector('.progress');
+        const sessionCount = document.querySelector('.session-count');
+        const message = document.querySelector('.message');
+        const phaseIndicators = document.querySelectorAll('.phase');
+
+        let currentPhase = 'work';
+        let timeRemaining = phases[currentPhase].duration;
+        let isRunning = false;
+        let intervalId = null;
+        let completedSessions = 0;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateTitle() {
+            const phaseLabel = phases[currentPhase].label;
+            document.title = `${formatTime(timeRemaining)} - ${phaseLabel}`;
+        }
+
+        function updateDisplay() {
+            timeDisplay.textContent = formatTime(timeRemaining);
+            updateTitle();
+
+            const progress = (phases[currentPhase].duration - timeRemaining) / phases[currentPhase].duration;
+            progressCircle.style.strokeDashoffset = circumference * (1 - progress);
+        }
+
+        function setPhase(phase) {
+            currentPhase = phase;
+            timeRemaining = phases[phase].duration;
+
+            document.documentElement.style.setProperty('--accent-color', phases[phase].color);
+            progressCircle.style.stroke = phases[phase].color;
+
+            phaseIndicators.forEach(p => {
+                p.classList.toggle('active', p.dataset.phase === phase);
+            });
+
+            sessionCount.textContent = phase === 'work'
+                ? `Session ${(completedSessions % sessionsBeforeLongBreak) + 1} of ${sessionsBeforeLongBreak}`
+                : '';
+
+            updateDisplay();
+        }
+
+        function playDing() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.setValueAtTime(256, audioContext.currentTime);
+
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 2.0);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 2.0);
+        }
+
+        function completePhase() {
+            stopTimer();
+            playDing();
+
+            if (currentPhase === 'work') {
+                completedSessions++;
+
+                if (completedSessions % sessionsBeforeLongBreak === 0) {
+                    setPhase('longBreak');
+                    message.textContent = 'Time for a long break!';
+                } else {
+                    setPhase('shortBreak');
+                    message.textContent = 'Time for a short break!';
+                }
+            } else {
+                setPhase('work');
+                message.textContent = 'Ready for another focus session?';
+            }
+
+            startBtn.textContent = 'Start';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸';
+        }
+
+        function startTimer() {
+            if (timeRemaining <= 0) return;
+
+            isRunning = true;
+            startBtn.textContent = 'Running';
+            startBtn.disabled = true;
+            pauseBtn.disabled = false;
+            message.textContent = '';
+
+            intervalId = setInterval(() => {
+                timeRemaining--;
+                updateDisplay();
+
+                if (timeRemaining <= 0) {
+                    completePhase();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            isRunning = false;
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        }
+
+        function pauseTimer() {
+            stopTimer();
+            startBtn.textContent = 'Resume';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸';
+            message.textContent = 'Paused';
+        }
+
+        function restartTimer() {
+            stopTimer();
+            setPhase(currentPhase);
+            startBtn.textContent = 'Start';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸';
+            message.textContent = currentPhase === 'work'
+                ? 'Press start to begin your focus session'
+                : 'Press start to begin your break';
+        }
+
+        startBtn.addEventListener('click', () => {
+            if (!isRunning) {
+                startTimer();
+            }
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            if (isRunning) {
+                pauseTimer();
+            }
+        });
+
+        restartBtn.addEventListener('click', restartTimer);
+
+        skipBtn.addEventListener('click', () => {
+            timeRemaining = 0;
+            updateDisplay();
+            completePhase();
+        });
+
+        newSessionBtn.addEventListener('click', () => {
+            stopTimer();
+            completedSessions = 0;
+            setPhase('work');
+            startBtn.textContent = 'Start';
+            startBtn.disabled = false;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = '⏸';
+            message.textContent = 'Press start to begin your focus session';
+        });
+
+        phaseIndicators.forEach(indicator => {
+            indicator.addEventListener('click', () => {
+                if (!isRunning) {
+                    setPhase(indicator.dataset.phase);
+                    startBtn.textContent = 'Start';
+                    startBtn.disabled = false;
+                    pauseBtn.disabled = true;
+                    pauseBtn.textContent = '⏸';
+                    message.textContent = 'Press start to begin';
+                }
+            });
+        });
+
+        setPhase('work');
+    </script>
+</body>
+</html>
